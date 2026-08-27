@@ -3,12 +3,11 @@ let mevcutBoylam = 32.85;
 let mevcutZamanDilimi = "Europe/Istanbul";
 let saatInterval = null;
 
-// 1. CANLI SAAT VE TARİH (Seçilen Şehrin Zaman Dilimine Göre)
+// 1. CANLI SAAT VE TARİH
 function saatiGuncelle() {
     try {
         const simdi = new Date();
 
-        // Şehrin canlı saati (HH:MM:SS)
         const saatFormat = new Intl.DateTimeFormat("tr-TR", {
             timeZone: mevcutZamanDilimi,
             hour: "2-digit",
@@ -17,7 +16,6 @@ function saatiGuncelle() {
             hour12: false
         });
 
-        // Şehrin canlı tarihi
         const tarihFormat = new Intl.DateTimeFormat("tr-TR", {
             timeZone: mevcutZamanDilimi,
             year: "numeric",
@@ -34,7 +32,6 @@ function saatiGuncelle() {
     }
 }
 
-// Saati başlat
 if (saatInterval) clearInterval(saatInterval);
 saatInterval = setInterval(saatiGuncelle, 1000);
 saatiGuncelle();
@@ -58,7 +55,7 @@ document.getElementById("sehirInput").addEventListener("keypress", (e) => {
     }
 });
 
-// 2. ŞEHRİN SEMBOLİK RESMİNİ ÇEKME (Wikimedia API)
+// 2. SEMBOLİK RESİM ÇEKME
 function sembolikResimGetir(sehirAdi) {
     const wikiUrl = `https://tr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(sehirAdi)}`;
 
@@ -96,33 +93,35 @@ function ingilizceWikiResimGetir(sehirAdi) {
         });
 }
 
-// 3. ŞEHİR ARAMA (Timezone Doğrudan Buradan Alınıyor)
+// 3. ŞEHİR ARAMA (New York Düzeltmesi Dahil)
 function sehirAra() {
-    const sehirAdi = document.getElementById("sehirInput").value.trim();
+    let sehirAdi = document.getElementById("sehirInput").value.trim();
     if (sehirAdi === "") return;
 
-    fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(sehirAdi)}&count=1&language=tr&format=json`)
+    // New York aramalarındaki eyalet/şehir karışıklığını çözer
+    let aramaMetni = sehirAdi;
+    if (sehirAdi.toLowerCase().replace(/\s+/g, '') === "newyork") {
+        aramaMetni = "New York City";
+    }
+
+    fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(aramaMetni)}&count=5&language=tr&format=json`)
         .then(res => res.json())
         .then(data => {
             if (data.results && data.results.length > 0) {
+                // Şehir eşleşmesi seçimi
                 const konum = data.results[0];
                 mevcutEnlem = konum.latitude;
                 mevcutBoylam = konum.longitude;
                 
-                // Şehrin zaman dilimi alınıyor (Örn: "America/New_York")
                 if (konum.timezone) {
                     mevcutZamanDilimi = konum.timezone;
                     saatiGuncelle();
                 }
 
-                // Şehrin Resmi İsmini Yazdır
                 const resmiSehirIsmi = konum.name;
                 document.getElementById("sehir").innerText = resmiSehirIsmi;
 
-                // Hava Durumunu Çek
                 havaDurumuGetir(mevcutEnlem, mevcutBoylam, mevcutZamanDilimi);
-
-                // Sembolik Görsel Yükle
                 sembolikResimGetir(resmiSehirIsmi);
                 
                 document.getElementById("sehirInput").value = "";
