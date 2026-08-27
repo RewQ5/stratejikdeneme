@@ -96,7 +96,7 @@ function ingilizceWikiResimGetir(sehirAdi) {
         });
 }
 
-// 3. ŞEHİR ARAMA
+// 3. ŞEHİR ARAMA (Timezone Doğrudan Buradan Alınıyor)
 function sehirAra() {
     const sehirAdi = document.getElementById("sehirInput").value.trim();
     if (sehirAdi === "") return;
@@ -109,12 +109,18 @@ function sehirAra() {
                 mevcutEnlem = konum.latitude;
                 mevcutBoylam = konum.longitude;
                 
+                // Şehrin zaman dilimi alınıyor (Örn: "America/New_York")
+                if (konum.timezone) {
+                    mevcutZamanDilimi = konum.timezone;
+                    saatiGuncelle();
+                }
+
                 // Şehrin Resmi İsmini Yazdır
                 const resmiSehirIsmi = konum.name;
                 document.getElementById("sehir").innerText = resmiSehirIsmi;
 
-                // Hava Durumu ve Saat Bilgilerini Getir
-                havaDurumuGetir(mevcutEnlem, mevcutBoylam);
+                // Hava Durumunu Çek
+                havaDurumuGetir(mevcutEnlem, mevcutBoylam, mevcutZamanDilimi);
 
                 // Sembolik Görsel Yükle
                 sembolikResimGetir(resmiSehirIsmi);
@@ -127,10 +133,10 @@ function sehirAra() {
         .catch(() => alert("Şehir aranırken hata oluştu."));
 }
 
-// Unix Timestamp'i Şehrin Yerel Saat/Dakika Formatına Çeviren Fonksiyon
+// Unix Timestamp Çevirici
 function unixSaatBiçimlendir(unixTimestamp, timeZone) {
     if (!unixTimestamp) return "--:--";
-    const tarih = new Date(unixTimestamp * 1000); // Saniyeyi milisaniyeye çevir
+    const tarih = new Date(unixTimestamp * 1000);
     return new Intl.DateTimeFormat("tr-TR", {
         timeZone: timeZone,
         hour: "2-digit",
@@ -139,10 +145,10 @@ function unixSaatBiçimlendir(unixTimestamp, timeZone) {
     }).format(tarih);
 }
 
-// 4. DETAYLI HAVA DURUMU VE KUSURSUZ ZAMAN DİLİMİ
-function havaDurumuGetir(enlem, boylam) {
-    // timeformat=unixtime parametresi eklenerek zaman kaymaları engellendi
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${enlem}&longitude=${boylam}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&daily=sunrise,sunset,uv_index_max&timezone=auto&timeformat=unixtime`;
+// 4. DETAYLI HAVA DURUMU
+function havaDurumuGetir(enlem, boylam, timezone) {
+    const tzParam = timezone ? encodeURIComponent(timezone) : "auto";
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${enlem}&longitude=${boylam}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&daily=sunrise,sunset,uv_index_max&timezone=${tzParam}&timeformat=unixtime`;
 
     fetch(url)
         .then(response => response.json())
@@ -150,7 +156,6 @@ function havaDurumuGetir(enlem, boylam) {
             const anlik = data.current;
             const gunluk = data.daily;
 
-            // Şehrin Otomatik Zaman Dilimini Al ve Saati Anında Güncelle
             if (data.timezone) {
                 mevcutZamanDilimi = data.timezone;
                 saatiGuncelle();
@@ -163,7 +168,6 @@ function havaDurumuGetir(enlem, boylam) {
             
             document.getElementById("uv").innerText = gunluk.uv_index_max[0];
             
-            // Gündoğumu ve Günbatımı Saatlerini Tam Doğrulukla Çevir
             document.getElementById("gundogumu").innerText = unixSaatBiçimlendir(gunluk.sunrise[0], mevcutZamanDilimi);
             document.getElementById("gunbatimi").innerText = unixSaatBiçimlendir(gunluk.sunset[0], mevcutZamanDilimi);
 
@@ -188,7 +192,7 @@ function weatherCodeMetni(code) {
 }
 
 // Başlangıç Yüklemeleri (Ankara)
-havaDurumuGetir(mevcutEnlem, mevcutBoylam);
+havaDurumuGetir(mevcutEnlem, mevcutBoylam, mevcutZamanDilimi);
 sembolikResimGetir("Ankara");
 
-setInterval(() => havaDurumuGetir(mevcutEnlem, mevcutBoylam), 600000);
+setInterval(() => havaDurumuGetir(mevcutEnlem, mevcutBoylam, mevcutZamanDilimi), 600000);
