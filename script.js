@@ -8,12 +8,13 @@ function saatiGuncelle() {
     try {
         const simdi = new Date();
 
-        // Şehrin canlı saati
+        // Şehrin canlı saati (HH:MM:SS)
         const saatFormat = new Intl.DateTimeFormat("tr-TR", {
             timeZone: mevcutZamanDilimi,
             hour: "2-digit",
             minute: "2-digit",
-            second: "2-digit"
+            second: "2-digit",
+            hour12: false
         });
 
         // Şehrin canlı tarihi
@@ -108,11 +109,11 @@ function sehirAra() {
                 mevcutEnlem = konum.latitude;
                 mevcutBoylam = konum.longitude;
                 
-                // Resmi Düzgün Şehir İsmini Yazdır
+                // Şehrin Resmi İsmini Yazdır
                 const resmiSehirIsmi = konum.name;
                 document.getElementById("sehir").innerText = resmiSehirIsmi;
 
-                // Hava Durumu ve Şehrin Saatini Getir
+                // Hava Durumu ve Saat Bilgilerini Getir
                 havaDurumuGetir(mevcutEnlem, mevcutBoylam);
 
                 // Sembolik Görsel Yükle
@@ -126,7 +127,19 @@ function sehirAra() {
         .catch(() => alert("Şehir aranırken hata oluştu."));
 }
 
-// 4. DETAYLI HAVA DURUMU VE DİNAMİK TIMEZONE (API)
+// ISO Zamanını Saat/Dakika Formatına Çeviren Yardımcı Fonksiyon
+function saatBiçimlendir(isoString, timeZone) {
+    if (!isoString) return "--:--";
+    const tarih = new Date(isoString);
+    return new Intl.DateTimeFormat("tr-TR", {
+        timeZone: timeZone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+    }).format(tarih);
+}
+
+// 4. DETAYLI HAVA DURUMU VE ZAMAN DİLİMİ (API)
 function havaDurumuGetir(enlem, boylam) {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${enlem}&longitude=${boylam}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&daily=sunrise,sunset,uv_index_max&timezone=auto`;
 
@@ -136,10 +149,10 @@ function havaDurumuGetir(enlem, boylam) {
             const anlik = data.current;
             const gunluk = data.daily;
 
-            // Şehrin Otomatik Zaman Dilimini (Timezone) Al ve Saati Güncelle
+            // Şehrin Otomatik Zaman Dilimini Al ve Saati Anında Güncelle
             if (data.timezone) {
                 mevcutZamanDilimi = data.timezone;
-                saatiGuncelle(); // Zaman dilimi değiştiği an saati anında yenile
+                saatiGuncelle();
             }
 
             document.getElementById("sicaklik").innerText = `${Math.round(anlik.temperature_2m)}°C`;
@@ -149,12 +162,9 @@ function havaDurumuGetir(enlem, boylam) {
             
             document.getElementById("uv").innerText = gunluk.uv_index_max[0];
             
-            // Saat/Dakika ayıklama işlemi
-            const gundogumuSaat = gunluk.sunrise[0].includes("T") ? gunluk.sunrise[0].split("T")[1] : gunluk.sunrise[0];
-            const gunbatimiSaat = gunluk.sunset[0].includes("T") ? gunluk.sunset[0].split("T")[1] : gunluk.sunset[0];
-            
-            document.getElementById("gundogumu").innerText = gundogumuSaat;
-            document.getElementById("gunbatimi").innerText = gunbatimiSaat;
+            // Gündoğumu ve Günbatımını Şehrin Zaman Dilimine Göre Formatla
+            document.getElementById("gundogumu").innerText = saatBiçimlendir(gunluk.sunrise[0], mevcutZamanDilimi);
+            document.getElementById("gunbatimi").innerText = saatBiçimlendir(gunluk.sunset[0], mevcutZamanDilimi);
 
             document.getElementById("durum").innerText = weatherCodeMetni(anlik.weather_code);
         })
