@@ -1,14 +1,14 @@
 let mevcutEnlem = 39.93;
 let mevcutBoylam = 32.85;
-let mevcutZamanDilimi = "Europe/Istanbul"; // Varsayılan Ankara/Türkiye Zaman Dilimi
+let mevcutZamanDilimi = "Europe/Istanbul";
 let saatInterval = null;
 
-// 1. DİNAMİK CANLI SAAT VE TARİH (Seçilen Şehrin Zaman Dilimine Göre)
+// 1. CANLI SAAT VE TARİH (Seçilen Şehrin Zaman Dilimine Göre)
 function saatiGuncelle() {
     try {
         const simdi = new Date();
 
-        // Şehrin yerel saat formatı
+        // Şehrin canlı saati
         const saatFormat = new Intl.DateTimeFormat("tr-TR", {
             timeZone: mevcutZamanDilimi,
             hour: "2-digit",
@@ -16,7 +16,7 @@ function saatiGuncelle() {
             second: "2-digit"
         });
 
-        // Şehrin yerel tarih formatı
+        // Şehrin canlı tarihi
         const tarihFormat = new Intl.DateTimeFormat("tr-TR", {
             timeZone: mevcutZamanDilimi,
             year: "numeric",
@@ -28,7 +28,6 @@ function saatiGuncelle() {
         document.getElementById("saat").innerText = saatFormat.format(simdi);
         document.getElementById("tarih").innerText = tarihFormat.format(simdi);
     } catch (e) {
-        // Zaman dilimi yüklenemezse varsayılan sistem saatini gösterir
         const simdi = new Date();
         document.getElementById("saat").innerText = simdi.toLocaleTimeString("tr-TR");
     }
@@ -96,7 +95,7 @@ function ingilizceWikiResimGetir(sehirAdi) {
         });
 }
 
-// 3. ŞEHİR ARAMA VE BİLGİLERİ GÜNCELLEME
+// 3. ŞEHİR ARAMA
 function sehirAra() {
     const sehirAdi = document.getElementById("sehirInput").value.trim();
     if (sehirAdi === "") return;
@@ -109,14 +108,14 @@ function sehirAra() {
                 mevcutEnlem = konum.latitude;
                 mevcutBoylam = konum.longitude;
                 
-                // 1. Resmi Düzgün İsmi Yazdır (Örn: "istanbul" yerine "İstanbul", "tokyo" yerine "Tokyo")
+                // Resmi Düzgün Şehir İsmini Yazdır
                 const resmiSehirIsmi = konum.name;
                 document.getElementById("sehir").innerText = resmiSehirIsmi;
 
-                // 2. Hava Durumunu ve Şehrin Saatini Getir
+                // Hava Durumu ve Şehrin Saatini Getir
                 havaDurumuGetir(mevcutEnlem, mevcutBoylam);
 
-                // 3. Şehrin Sembolik Görselini Yükle
+                // Sembolik Görsel Yükle
                 sembolikResimGetir(resmiSehirIsmi);
                 
                 document.getElementById("sehirInput").value = "";
@@ -127,7 +126,7 @@ function sehirAra() {
         .catch(() => alert("Şehir aranırken hata oluştu."));
 }
 
-// 4. DETAYLI HAVA DURUMU VE ZAMAN DİLİMİ (API)
+// 4. DETAYLI HAVA DURUMU VE DİNAMİK TIMEZONE (API)
 function havaDurumuGetir(enlem, boylam) {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${enlem}&longitude=${boylam}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&daily=sunrise,sunset,uv_index_max&timezone=auto`;
 
@@ -137,10 +136,10 @@ function havaDurumuGetir(enlem, boylam) {
             const anlik = data.current;
             const gunluk = data.daily;
 
-            // Şehrin Zaman Dilimini (Timezone) API'den Al ve Saati Güncelle
+            // Şehrin Otomatik Zaman Dilimini (Timezone) Al ve Saati Güncelle
             if (data.timezone) {
                 mevcutZamanDilimi = data.timezone;
-                saatiGuncelle();
+                saatiGuncelle(); // Zaman dilimi değiştiği an saati anında yenile
             }
 
             document.getElementById("sicaklik").innerText = `${Math.round(anlik.temperature_2m)}°C`;
@@ -150,8 +149,10 @@ function havaDurumuGetir(enlem, boylam) {
             
             document.getElementById("uv").innerText = gunluk.uv_index_max[0];
             
-            const gundogumuSaat = gunluk.sunrise[0].split("T")[1];
-            const gunbatimiSaat = gunluk.sunset[0].split("T")[1];
+            // Saat/Dakika ayıklama işlemi
+            const gundogumuSaat = gunluk.sunrise[0].includes("T") ? gunluk.sunrise[0].split("T")[1] : gunluk.sunrise[0];
+            const gunbatimiSaat = gunluk.sunset[0].includes("T") ? gunluk.sunset[0].split("T")[1] : gunluk.sunset[0];
+            
             document.getElementById("gundogumu").innerText = gundogumuSaat;
             document.getElementById("gunbatimi").innerText = gunbatimiSaat;
 
