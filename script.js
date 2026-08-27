@@ -93,14 +93,16 @@ function ingilizceWikiResimGetir(sehirAdi) {
         });
 }
 
-// 3. ŞEHİR ARAMA (New York Düzeltmesi Dahil)
+// 3. ŞEHİR ARAMA (Birleşik Yazım Temizleme Mantığı)
 function sehirAra() {
-    let sehirAdi = document.getElementById("sehirInput").value.trim();
-    if (sehirAdi === "") return;
+    let hamGirdi = document.getElementById("sehirInput").value.trim();
+    if (hamGirdi === "") return;
 
-    // New York aramalarındaki eyalet/şehir karışıklığını çözer
-    let aramaMetni = sehirAdi;
-    if (sehirAdi.toLowerCase().replace(/\s+/g, '') === "newyork") {
+    // Girdideki Türkçe karakter ve boşluk ayıklaması
+    let aramaMetni = hamGirdi;
+    const temizMetin = hamGirdi.toLowerCase().replace(/[\s\-_]+/g, '');
+
+    if (temizMetin === "newyork") {
         aramaMetni = "New York City";
     }
 
@@ -108,11 +110,11 @@ function sehirAra() {
         .then(res => res.json())
         .then(data => {
             if (data.results && data.results.length > 0) {
-                // Şehir eşleşmesi seçimi
                 const konum = data.results[0];
                 mevcutEnlem = konum.latitude;
                 mevcutBoylam = konum.longitude;
                 
+                // Şehrin zaman dilimi alınıp anında eşitleniyor
                 if (konum.timezone) {
                     mevcutZamanDilimi = konum.timezone;
                     saatiGuncelle();
