@@ -1,17 +1,45 @@
 let mevcutEnlem = 39.93;
 let mevcutBoylam = 32.85;
+let mevcutZamanDilimi = "Europe/Istanbul"; // Varsayılan Ankara/Türkiye Zaman Dilimi
+let saatInterval = null;
 
-// 1. CANLI SAAT VE TARİH
+// 1. DİNAMİK CANLI SAAT VE TARİH (Seçilen Şehrin Zaman Dilimine Göre)
 function saatiGuncelle() {
-    const simdi = new Date();
-    document.getElementById("saat").innerText = simdi.toLocaleTimeString("tr-TR");
-    const secenekler = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-    document.getElementById("tarih").innerText = simdi.toLocaleDateString("tr-TR", secenekler);
+    try {
+        const simdi = new Date();
+
+        // Şehrin yerel saat formatı
+        const saatFormat = new Intl.DateTimeFormat("tr-TR", {
+            timeZone: mevcutZamanDilimi,
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+        });
+
+        // Şehrin yerel tarih formatı
+        const tarihFormat = new Intl.DateTimeFormat("tr-TR", {
+            timeZone: mevcutZamanDilimi,
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            weekday: "long"
+        });
+
+        document.getElementById("saat").innerText = saatFormat.format(simdi);
+        document.getElementById("tarih").innerText = tarihFormat.format(simdi);
+    } catch (e) {
+        // Zaman dilimi yüklenemezse varsayılan sistem saatini gösterir
+        const simdi = new Date();
+        document.getElementById("saat").innerText = simdi.toLocaleTimeString("tr-TR");
+    }
 }
-setInterval(saatiGuncelle, 1000);
+
+// Saati başlat
+if (saatInterval) clearInterval(saatInterval);
+saatInterval = setInterval(saatiGuncelle, 1000);
 saatiGuncelle();
 
-// Manuel Fotoğraf Yükleme Kontrolü
+// Manuel Fotoğraf Yükleme
 document.getElementById("bgFile").addEventListener("change", (e) => {
     const dosya = e.target.files[0];
     if (dosya) {
@@ -30,23 +58,20 @@ document.getElementById("sehirInput").addEventListener("keypress", (e) => {
     }
 });
 
-// 2. ŞEHRİN SEMBOLİK YERİNİN FOTOĞRAFINI ÇEKME (Wikimedia API)
+// 2. ŞEHRİN SEMBOLİK RESMİNİ ÇEKME (Wikimedia API)
 function sembolikResimGetir(sehirAdi) {
-    // Wikipedia API üzerinden şehrin kapak/sembol fotoğrafını çeker
     const wikiUrl = `https://tr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(sehirAdi)}`;
 
     fetch(wikiUrl)
         .then(res => res.json())
         .then(data => {
             if (data.originalimage && data.originalimage.source) {
-                // Şehrin simge görselini arka plana uygula
                 const img = new Image();
                 img.src = data.originalimage.source;
                 img.onload = () => {
                     document.body.style.backgroundImage = `url('${img.src}')`;
                 };
             } else {
-                // Türkçe Vikipedi'de bulunamazsa İngilizce Vikipediden simge yapı ara
                 ingilizceWikiResimGetir(sehirAdi);
             }
         })
@@ -63,7 +88,6 @@ function ingilizceWikiResimGetir(sehirAdi) {
             if (data.originalimage && data.originalimage.source) {
                 document.body.style.backgroundImage = `url('${data.originalimage.source}')`;
             } else {
-                // Yedek HD Şehir Manzarası
                 document.body.style.backgroundImage = `url('https://picsum.photos/1920/1080?blur=1')`;
             }
         })
@@ -72,7 +96,7 @@ function ingilizceWikiResimGetir(sehirAdi) {
         });
 }
 
-// 3. ŞEHİR ARAMA (Geocoding API)
+// 3. ŞEHİR ARAMA VE BİLGİLERİ GÜNCELLEME
 function sehirAra() {
     const sehirAdi = document.getElementById("sehirInput").value.trim();
     if (sehirAdi === "") return;
@@ -85,11 +109,15 @@ function sehirAra() {
                 mevcutEnlem = konum.latitude;
                 mevcutBoylam = konum.longitude;
                 
-                document.getElementById("sehir").innerText = konum.name;
+                // 1. Resmi Düzgün İsmi Yazdır (Örn: "istanbul" yerine "İstanbul", "tokyo" yerine "Tokyo")
+                const resmiSehirIsmi = konum.name;
+                document.getElementById("sehir").innerText = resmiSehirIsmi;
+
+                // 2. Hava Durumunu ve Şehrin Saatini Getir
                 havaDurumuGetir(mevcutEnlem, mevcutBoylam);
-                
-                // Şehrin simge görselini getir
-                sembolikResimGetir(konum.name);
+
+                // 3. Şehrin Sembolik Görselini Yükle
+                sembolikResimGetir(resmiSehirIsmi);
                 
                 document.getElementById("sehirInput").value = "";
             } else {
@@ -99,7 +127,7 @@ function sehirAra() {
         .catch(() => alert("Şehir aranırken hata oluştu."));
 }
 
-// 4. DETAYLI HAVA DURUMU BİLGİLERİ (API)
+// 4. DETAYLI HAVA DURUMU VE ZAMAN DİLİMİ (API)
 function havaDurumuGetir(enlem, boylam) {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${enlem}&longitude=${boylam}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&daily=sunrise,sunset,uv_index_max&timezone=auto`;
 
@@ -108,6 +136,12 @@ function havaDurumuGetir(enlem, boylam) {
         .then(data => {
             const anlik = data.current;
             const gunluk = data.daily;
+
+            // Şehrin Zaman Dilimini (Timezone) API'den Al ve Saati Güncelle
+            if (data.timezone) {
+                mevcutZamanDilimi = data.timezone;
+                saatiGuncelle();
+            }
 
             document.getElementById("sicaklik").innerText = `${Math.round(anlik.temperature_2m)}°C`;
             document.getElementById("hissedilen").innerText = `${Math.round(anlik.apparent_temperature)} °C`;
@@ -141,7 +175,7 @@ function weatherCodeMetni(code) {
     return kodlar[code] || "Hava Durumu Bilinmiyor";
 }
 
-// İlk Yükleme (Ankara & Anıtkabir / Ankara Kalesi Görseli)
+// Başlangıç Yüklemeleri (Ankara)
 havaDurumuGetir(mevcutEnlem, mevcutBoylam);
 sembolikResimGetir("Ankara");
 
