@@ -127,10 +127,10 @@ function sehirAra() {
         .catch(() => alert("Şehir aranırken hata oluştu."));
 }
 
-// ISO Zamanını Saat/Dakika Formatına Çeviren Yardımcı Fonksiyon
-function saatBiçimlendir(isoString, timeZone) {
-    if (!isoString) return "--:--";
-    const tarih = new Date(isoString);
+// Unix Timestamp'i Şehrin Yerel Saat/Dakika Formatına Çeviren Fonksiyon
+function unixSaatBiçimlendir(unixTimestamp, timeZone) {
+    if (!unixTimestamp) return "--:--";
+    const tarih = new Date(unixTimestamp * 1000); // Saniyeyi milisaniyeye çevir
     return new Intl.DateTimeFormat("tr-TR", {
         timeZone: timeZone,
         hour: "2-digit",
@@ -139,9 +139,10 @@ function saatBiçimlendir(isoString, timeZone) {
     }).format(tarih);
 }
 
-// 4. DETAYLI HAVA DURUMU VE ZAMAN DİLİMİ (API)
+// 4. DETAYLI HAVA DURUMU VE KUSURSUZ ZAMAN DİLİMİ
 function havaDurumuGetir(enlem, boylam) {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${enlem}&longitude=${boylam}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&daily=sunrise,sunset,uv_index_max&timezone=auto`;
+    // timeformat=unixtime parametresi eklenerek zaman kaymaları engellendi
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${enlem}&longitude=${boylam}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&daily=sunrise,sunset,uv_index_max&timezone=auto&timeformat=unixtime`;
 
     fetch(url)
         .then(response => response.json())
@@ -162,9 +163,9 @@ function havaDurumuGetir(enlem, boylam) {
             
             document.getElementById("uv").innerText = gunluk.uv_index_max[0];
             
-            // Gündoğumu ve Günbatımını Şehrin Zaman Dilimine Göre Formatla
-            document.getElementById("gundogumu").innerText = saatBiçimlendir(gunluk.sunrise[0], mevcutZamanDilimi);
-            document.getElementById("gunbatimi").innerText = saatBiçimlendir(gunluk.sunset[0], mevcutZamanDilimi);
+            // Gündoğumu ve Günbatımı Saatlerini Tam Doğrulukla Çevir
+            document.getElementById("gundogumu").innerText = unixSaatBiçimlendir(gunluk.sunrise[0], mevcutZamanDilimi);
+            document.getElementById("gunbatimi").innerText = unixSaatBiçimlendir(gunluk.sunset[0], mevcutZamanDilimi);
 
             document.getElementById("durum").innerText = weatherCodeMetni(anlik.weather_code);
         })
