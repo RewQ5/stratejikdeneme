@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canlı Hava Durumu & Saat</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- 1. Bilgiler Kutusu Dışında Bağımsız Üst Arama Çubuğu -->
+    <div class="ust-arama-bar">
+        <input type="text" id="sehirInput" placeholder="Şehir adı giriniz (Örn: İstanbul)...">
+        <button onclick="sehirAra()">Şehir Ara</button>
+    </div>
+
+    <!-- 2. Ekranın Sol Tarafına Yaslanan Bilgi Paneli -->
+    <div class="sol-panel">
+        
+        <!-- Saat ve Tarih (Sol Üst) -->
+        <div class="zaman-kutusu">
+            <h1 id="saat">00:00:00</h1>
+            <p id="tarih">1 Ocak 2026, Perşembe</p>
+        </div>
+
+        <!-- Şehir ve Derece Bilgisi -->
+        <div class="hava-ana">
+            <h2 id="sehir">Ankara</h2>
+            <div id="sicaklik">-- °C</div>
+            <p id="durum">Yükleniyor...</p>
+        </div>
+
+        <!-- Alt Alta Detay Listesi -->
+        <div class="detay-listesi">
+            <div class="detay-satir">
+                <span>Hissedilen Sıcaklık</span>
+                <strong id="hissedilen">-- °C</strong>
+            </div>
+            <div class="detay-satir">
+                <span>Nem Oranı</span>
+                <strong id="nem">%--</strong>
+            </div>
+            <div class="detay-satir">
+                <span>Rüzgar Hızı</span>
+                <strong id="ruzgar">-- km/s</strong>
+            </div>
+            <div class="detay-satir">
+                <span>UV İndeksi</span>
+                <strong id="uv">--</strong>
+            </div>
+            <div class="detay-satir">
+                <span>Gündoğumu</span>
+                <strong id="gundogumu">--:--</strong>
+            </div>
+            <div class="detay-satir">
+                <span>Günbatımı</span>
+                <strong id="gunbatimi">--:--</strong>
+            </div>
+        </div>
+
+        <!-- Manuel Görsel Yükleme -->
+        <div class="kontrol-kutusu">
+            <label for="bgFile" class="file-label">Kendi Arka Planını Yükle</label>
+            <input type="file" id="bgFile" accept="image/*">
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
